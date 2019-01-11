@@ -1,0 +1,4 @@
+{
+    "open current directory": "open .", 
+    "open xiami": "open -a /Applications/Xiami.app" 
+}
