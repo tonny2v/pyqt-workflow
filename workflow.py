@@ -9,7 +9,7 @@
 
 import sys
 import os
-from PyQt4 import QtCore, QtGui
+from PyQt5 import QtCore, QtGui, QtWidgets
 import json
 
 
@@ -26,16 +26,20 @@ class MyListModel(QtCore.QAbstractListModel):
 
     def data(self, index, role):
         if index.isValid() and role == QtCore.Qt.DisplayRole:
-            return QtCore.QVariant(self.listdata[index.row()])
+            if len(self.listdata) != 0:
+                return QtCore.QVariant(list(self.listdata)[index.row()])
         else:
             return QtCore.QVariant()
 
     def setAllData(self, newdata):
         """ replace all data with new data """
+        self.beginResetModel()
         self.listdata = newdata
-        self.reset()
+        self.resetInternalData()
+        self.endResetModel()
+        # import ipdb; ipdb.set_trace() #XXX BREAKPOINT
 
-class MyWidget(QtGui.QWidget):
+class MyWidget(QtWidgets.QWidget):
     # define a sigal
     on_executed = QtCore.pyqtSignal(str)
 
@@ -44,19 +48,21 @@ class MyWidget(QtGui.QWidget):
         # load workflow file
         self.workflow = json.load(open('workflow.json'))
         self.initGui()
-        # declare what happens if the signal is invoked 
-        self.on_executed.connect(self.lbl.setText)
+        # declare what happens if the signal is invoked self.on_executed.connect(self.lbl.setText) def text_changed_handler(self):
+        keys = [str(k) for k,v in self.workflow.items() if str(self.le.text()) in k]
 
     def text_changed_handler(self):
-        keys = [str(k) for k,v in self.workflow.iteritems() if str(self.le.text()) in k]
+        keys = [str(k) for k,v in self.workflow.items() if str(self.le.text()) in k]
+        print(keys)
         self.lm.setAllData(keys)
         self.lv.setCurrentIndex(self.lv.model().index(0,0))
 
     def lv_handler(self, s):
-        print ( s )
+        print (s)
 
     def run(self):
-        text = self.lv.selectionModel().selectedIndexes()[0].data().toString()
+        print(self.lv.selectionModel().selectedIndexes()[0].data())
+        text = self.lv.selectionModel().selectedIndexes()[0].data()
         try:
             res = os.popen(self.workflow[str(text)])
             self.on_executed.emit('succeed! ' + res.readline())
@@ -68,33 +74,33 @@ class MyWidget(QtGui.QWidget):
 
     def initGui(self):
         # widgets
-        self.le = QtGui.QLineEdit("", self)
+        self.le = QtWidgets.QLineEdit("", self)
         self.le.textChanged[str].connect(self.text_changed_handler)
-        self.lbl = QtGui.QLabel("result")
+        self.lbl = QtWidgets.QLabel("result")
         self.lbl.setWordWrap(True)
-        self.lv = QtGui.QListView(self)
+        self.lv = QtWidgets.QListView(self)
         self.lm = MyListModel(self.workflow.keys(), self)
         self.lv.setModel(self.lm)
 
-        runButton = QtGui.QPushButton("Run")
-        stopButton = QtGui.QPushButton("Stop")
+        runButton = QtWidgets.QPushButton("Run")
+        stopButton = QtWidgets.QPushButton("Stop")
         runButton.clicked.connect(self.run)
         stopButton.clicked.connect(self.stop)
 
-        hbox = QtGui.QHBoxLayout()
+        hbox = QtWidgets.QHBoxLayout()
         hbox.addStretch(1)
         hbox.addWidget(self.le)
         hbox.addWidget(runButton)
         hbox.addWidget(stopButton)
 
-        vbox = QtGui.QVBoxLayout()
+        vbox = QtWidgets.QVBoxLayout()
         vbox.addLayout(hbox)
         vbox.addWidget(self.lv)
         vbox.addWidget(self.lbl)
         # vbox.addStretch(1)
         self.setLayout(vbox)
 
-class MyMainWindow(QtGui.QMainWindow):
+class MyMainWindow(QtWidgets.QMainWindow):
 
     def __init__(self, widget):
         """docstring for __init__"""
@@ -111,7 +117,7 @@ class MyMainWindow(QtGui.QMainWindow):
         pass
 
 if __name__ == '__main__':
-    app = QtGui.QApplication(sys.argv)
+    app = QtWidgets.QApplication(sys.argv)
     widget = MyWidget()
     win = MyMainWindow(widget)
     sys.exit(app.exec_())
